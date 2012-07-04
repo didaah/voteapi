@@ -1,0 +1,46 @@
+<?php
+
+/**
+ * @file
+ *  模块创建的 hook 示例，其它代码演示等
+ */
+
+/**
+ * @Implement of hook_voteapi_setting()
+ * 定义投票计数示例
+ */
+function voteapi_voteapi_setting($type = NULL, $vote = NULL) {
+
+  $settings = array(
+    'score' => array(
+      'description' => t('voteapi', '测试投票'),
+      'is_value' => array(-1, -2, 0, 1, 2), // 允许的值，只能是整数
+      'not_page' => false, // 禁止通过默认投票页(即访问 voteapi/{module}/{type})完成投票，默认 false
+      'is_login' => true, // 只允许登录用户投票，默认 false
+      //'is_roles' => array(1, 2, 3), // 指定允许投票的角色组 id，默认允许全部
+      //'is_time' => 24, // 针对单个用户或 IP 的投票时间限制，以小时为单位，默认不限
+      //'later_statistics' => true, // 自行进行数据统计，若设置为 true，将不会自动进行数据统计，默认为 false
+      //'statistics' => false, // 数据统计类型。可选值: false - 不统计；true - 统计默认类型：sum、count、avg；或自定义类型 array('test_type', 'abc')
+      //'ext_statistics' => false, // 是否统计单项值的总数，如：共有多少人选择 1，默认为 false
+    )
+  );
+  
+  return $type ? $settings[$type] : $settings;
+}
+
+/**
+ * 一条投票记录已通过检查，即将写入 
+ * @param object $vote 
+ *  待写入的投票记录
+ * @access public
+ * @return void
+ */
+function voteapi_voteapi_presave($vote) {
+  global $user;
+  if ($user->uid == 1) {
+    // 设置为 false，可以限制该记录写入
+    $vote->is_ok = false;
+  }
+}
+
+

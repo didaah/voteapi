@@ -2,38 +2,38 @@
 // $Id$
 
 /**
- * @Implement of hook_update_x()
- */
-function voteapi_update_1(){
-  $ext_id = array(
-    'type' => 'int',
-    'not null' => TRUE,
-    'unsigned' => TRUE,
-    'default' => 0,
-    'description' => '扩展 id'
-  );
-  
-  $ret = db_add_field('voteapi_info', 'ext_id', $ext_id);
-  db_add_index('voteapi_info', 'te', array('type', 'ext_id'));
-  
-  $value = array(
-    'type' => 'numeric',
-    'not null' => TRUE,
-    'precision' => 11,
-    'scale' => 2,
-    'default' => 0,
-    'description' => '值',
-  );
-  
-  db_change_field('voteapi', 'value', 'value', $value);
-  
-  return $ret;
-}
-
-/**
  * @Implement of hook_schema()
  */
 function voteapi_schema() {
+  $schema['voteapi_type'] = array(
+    'description' => '投票类型',
+    'fields' => array(
+      'tid' => array(
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'type' => array(
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => '类型名称',
+      ),
+      'module' => array(
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => '模块名称',
+      ),
+    ),
+    'unique keys' => array(
+      'tm' => array('type', 'module'),
+    ),
+    'primary key' => array('tid'),
+  );
+ 
   $schema['voteapi'] = array(
     'description' => '记录节点总票数',
     'fields' => array(
@@ -47,14 +47,16 @@ function voteapi_schema() {
         'unsigned' => TRUE,
         'not null' => TRUE,
         'default' => 0,
+        'size' => 'big',
+        'length' => 16,
         'description' => '节点 id',
       ),
-      'type' => array(
-        'type' => 'varchar',
-        'length' => 32,
+      'tid' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
         'not null' => TRUE,
-        'default' => '',
-        'description' => '自定义类型',
+        'default' => 0,
+        'description' => '关联 voteapi_type',
       ),
       'tags' => array(
         'type' => 'varchar',
@@ -79,11 +81,19 @@ function voteapi_schema() {
         'description' => '投票时间',
       ),
     ),
-    'indexes' => array(
-      'type' => array('type'),
+    'foreign keys' => array(
+      'tid' => array(
+        'table' => 'voteapi_type',
+        'field' => 'tid',
+        'update' => 'cascade',
+        'delete' => 'cascade'
+      )
     ),
     'unique keys' => array(
-      'ntv' => array('nid', 'type', 'tags'),
+      'tnt' => array('tid', 'nid', 'tags'),
+    ),
+    'indexes' => array(
+      'tn' => array('tid', 'nid'),
     ),
     'primary key' => array('vid'),
   );
@@ -101,20 +111,24 @@ function voteapi_schema() {
         'unsigned' => TRUE,
         'not null' => TRUE,
         'default' => 0,
+        'size' => 'big',
+        'length' => 16,
         'description' => '节点 id',
       ),
-      'type' => array(
-        'type' => 'varchar',
-        'length' => 32,
+      'tid' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
         'not null' => TRUE,
-        'default' => '',
-        'description' => '自定义类型',
+        'default' => 0,
+        'description' => '关联 voteapi_type',
       ),
       'ext_id' => array(
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
         'default' => 0,
+        'size' => 'big',
+        'length' => 16,
         'description' => '扩展 id',
       ),
       'value' => array(
@@ -146,10 +160,24 @@ function voteapi_schema() {
       ),
     ),
     'indexes' => array(
-      'te' => array('type', 'ext_id'),
-      'type' => array('type'),
-      'nt' => array('nid', 'type'),
-      'value' => array('value', 'type')
+      'tet' => array('tid', 'ext_id', 'timestamp'),
+      'tnt' => array('tid', 'nid', 'timestamp'),
+      'tut' => array('tid', 'uid', 'timestamp'),
+      'tun' => array('tid', 'uid', 'nid'),
+      'tunt' => array('tid', 'uid', 'nid', 'timestamp'),
+      'tuht' => array('tid', 'host', 'nid', 'timestamp'),
+      'tuvt' => array('tid', 'uid', 'value', 'timestamp'),
+      'tnvt' => array('tid', 'nid', 'value', 'timestamp'),
+      'tt' => array('tid', 'timestamp'),
+      'tvt' => array('tid', 'value', 'timestamp')
+    ),
+    'foreign keys' => array(
+      'tid' => array(
+        'table' => 'voteapi_type',
+        'field' => 'tid',
+        'update' => 'cascade',
+        'delete' => 'cascade'
+      )
     ),
     'primary key' => array('iid'),
   );
@@ -172,7 +200,7 @@ function voteapi_uninstall() {
   $ret = array();
   $ret = module_install_schema('uninstall', 'voteapi');
   
-  db_exec('DELETE FROM {variable} WHERE name LIKE ?', array('voteapi_%'));
+  db_exec('DELETE FROM {variable} WHERE name LIKE ?', array('voteapi%'));
   var_init();
   
   return $ret;
