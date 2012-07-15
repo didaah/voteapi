@@ -555,7 +555,6 @@ function _voteapi_exec($module, $type) {
 function voteapi_system_cache_clear($op, $value = NULL) {
   if ($op == 'submit' && !empty($value['value']['cache_hook'])) {
 
-
     $datas = _module_invoke_all('voteapi_setting');
 
     if ($fetch = db_query('SELECT * FROM {voteapi_type}')) {
