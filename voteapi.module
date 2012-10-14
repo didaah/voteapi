@@ -194,7 +194,11 @@ function voteapi_exec($module, $type, array $v, &$error = NULL, $page = NULL) {
           if ($setting['is_time'] < 73) {
             $error->text = t('voteapi', '每 !string 小时只能投票一次', array('!string' => $setting['is_time']));
           } else {
-            $error->text = t('voteapi', '你已经投过票了');
+            /**
+             * @TODO 提示语需自定义
+             */
+            //$error->text = t('voteapi', '你已经投过票了');
+            $error->text = t('voteapi', '操作成功');
           }
           return false;
         }
