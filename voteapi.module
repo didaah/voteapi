@@ -166,14 +166,24 @@ function voteapi_exec($module, $type, array $v, &$error = NULL, $page = NULL) {
   
   // 新增投票
   if (empty($v['iid'])) {
+ 
+    $vote->timestamp = $_SERVER['REQUEST_TIME'];
+    $vote->uid = $user->uid;
+    
+    if (!empty($v['ext_id'])) {
+      $vote->ext_id = $v['ext_id'];
+    }
+
+    $args = NULL;
+    $vote->in_update = false;   
+
     /**
      * 检查投票时间限制
-     * 以小时为单位，若设置为 1，表示每小时可投一票，设置为 2，2 小时可投一票。0 为不限制
+     * 以小时为单位，若设置为 1，表示每小时可投一票，设置为 2，2 小时可投一票。0 为不限制，-1 为只允许投一次
      */
     if (!empty($setting['is_time']) && is_numeric($setting['is_time'])) {
-
       $args = array($vote->tid);
-      $query = 'SELECT timestamp FROM {voteapi_info} WHERE tid = ? AND';
+      $query = 'SELECT iid, value, timestamp FROM {voteapi_info} WHERE tid = ? AND';
       
       if ($user->uid) {
         // 登录用户以 uid 判断
@@ -187,33 +197,37 @@ function voteapi_exec($module, $type, array $v, &$error = NULL, $page = NULL) {
       
       $query .= ' AND nid = ? ORDER BY timestamp';
       $args[] = $vote->nid;
-
-      if ($vote->last_timestamp = db_query($query, $args, array('return' => 'column'))) {
-        if ($vote->last_timestamp > ($_SERVER['REQUEST_TIME']-$setting['is_time']*3600)) {
+      
+      if ($fetch = db_query($query, $args, array('return' => 'one', 'limit' => 1))) {
+        $args = NULL;
+        // 上次投票时间
+        $vote->last_timestamp = $fetch->timestamp;
+        // 只允许投一次票
+        if ($setting['is_time'] == -1) {
+          // 如允许修改投票，则设置 iid，修改前一条记录
+          if (!empty($setting['vote_change']) && $vote->value != $fetch->value) {
+            // 修改投票不验证时间限制
+            $vote->iid = $fetch->iid;
+            $args = array('iid');
+            $vote->in_update = true;
+          } else {
+            $error->code = -7;
+            $error->text = $setting['text']['voteed'];
+            return false;
+          }
+        } else if ($vote->last_timestamp > ($_SERVER['REQUEST_TIME']-$setting['is_time']*3600)) {
           $error->code = -7;
           if ($setting['is_time'] < 73) {
-            $error->text = t('voteapi', '每 !string 小时只能投票一次', array('!string' => $setting['is_time']));
+            $error->text = str_replace('!time', $setting['is_time'], $setting['text']['time_limit']);
           } else {
-            /**
-             * @TODO 提示语需自定义
-             */
-            //$error->text = t('voteapi', '你已经投过票了');
-            $error->text = t('voteapi', '操作成功');
+            $error->text = $setting['text']['voteed'];
           }
           return false;
         }
+      } else {
+        $args = NULL;
       }
     }
-
-    $vote->timestamp = $_SERVER['REQUEST_TIME'];
-    $vote->uid = $user->uid;
-    
-    if (!empty($v['ext_id'])) {
-      $vote->ext_id = $v['ext_id'];
-    }
-
-    $args = NULL;
-    $vote->in_update = false;
   } else {
     // 修改投票不验证时间限制
     $vote->iid = $v['iid'];
@@ -232,7 +246,7 @@ function voteapi_exec($module, $type, array $v, &$error = NULL, $page = NULL) {
 
   if ($vote->is_ok === false) {
     $error->code = -12;
-    $error->text = t('voteapi', '没有权限投票');
+    $error->text = $setting['text']['access'];
     return false;
   }
   
@@ -350,8 +364,14 @@ function voteapi_update_statistics($vote, array $setting = array()) {
     if ($fetch = db_query('SELECT COUNT(value) AS c, value FROM {voteapi_info} WHERE tid = ? AND nid = ? 
     GROUP BY value ORDER timestamp ASC', array($vote->tid, $vote->nid))) {
       foreach ($fetch as $o) {
-        $vote->statistics[$o->value] = voteapi_set_statistics($vote, $o->value, $o->c);
+        $vote->statistics[$o->value] = $o->c;
       }
+    }
+    foreach ($setting['is_value'] as $value) {
+      if (empty($vote->statistics[$value])) {
+        $vote->statistics[$value] = 0;
+      }
+      voteapi_set_statistics($vote, $value, $vote->statistics[$value]);
     }
   }
  
@@ -425,7 +445,7 @@ function voteapi_get_info($tid, $info) {
 }
 
 /**
- * 写入统计kijkiu
+ * 写入统计
  * @param object $vote
  *  一条投票记录，必须有 $vote->tid、$vote->nid
  * @param (string) $tags

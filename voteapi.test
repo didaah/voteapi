@@ -18,8 +18,15 @@ function voteapi_voteapi_setting($type = NULL, $vote = NULL) {
       'is_value' => array(-1, -2, 0, 1, 2), // 允许的值，只能是整数
       'not_page' => false, // 禁止通过默认投票页(即访问 voteapi/{module}/{type})完成投票，默认 false
       'is_login' => true, // 只允许登录用户投票，默认 false
+      'vote_change' => true, // 允许修改投票
+      // 提示文字
+      'text' => array(
+        'voteed' => t('voteapi', '你已经投过票了'),
+        'time_limit' => t('voteapi', '每 !time 小时只能投票一次'),
+        'access' => t('voteapi', '你没有权限投票'),
+      ),
       //'is_roles' => array(1, 2, 3), // 指定允许投票的角色组 id，默认允许全部
-      //'is_time' => 24, // 针对单个用户或 IP 的投票时间限制，以小时为单位，默认不限
+      //'is_time' => 24, // 针对单个用户或 IP 的投票时间限制，以小时为单位，0 为不限，-1 为只允许 1 次
       //'later_statistics' => true, // 自行进行数据统计，若设置为 true，将不会自动进行数据统计，默认为 false
       //'statistics' => false, // 数据统计类型。可选值: false - 不统计；true - 统计默认类型：sum、count、avg；或自定义类型 array('test_type', 'abc')
       //'ext_statistics' => false, // 是否统计单项值的总数，如：共有多少人选择 1，默认为 false
