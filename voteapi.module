@@ -362,7 +362,7 @@ function voteapi_update_statistics($vote, array $setting = array()) {
    */
   if (!empty($setting['ext_statistics']) && !empty($setting['is_value'])) {
     if ($fetch = db_query('SELECT COUNT(value) AS c, value FROM {voteapi_info} WHERE tid = ? AND nid = ? 
-    GROUP BY value ORDER timestamp ASC', array($vote->tid, $vote->nid))) {
+    GROUP BY value ORDER BY timestamp ASC', array($vote->tid, $vote->nid))) {
       foreach ($fetch as $o) {
         $vote->statistics[$o->value] = $o->c;
       }
@@ -505,7 +505,7 @@ function voteapi_get_statistics($vote, $tags = NULL) {
       }
     }
   }
-  
+
   if (is_null($tags)) {
     return $data[$vote->tid][$vote->nid];
   } else {
